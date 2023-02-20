@@ -9,6 +9,7 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 pub use iterator::BlockIterator;
 
 pub const SIZEOF_U16: usize = std::mem::size_of::<u16>();
+pub const SIZEOF_U32: usize = std::mem::size_of::<u32>();
 
 /// A block is the smallest unit of read and caching in LSM tree. It is a collection of sorted
 /// key-value pairs.
@@ -18,6 +19,7 @@ pub struct Block {
 }
 
 impl Block {
+    // TODO: Compress and checksum. flate2(miniz_oxide) or snap or brotli?
     pub fn encode(&self) -> Bytes {
         let num_of_elements = self.offsets.len();
         let mut buf = BytesMut::with_capacity((num_of_elements + 1) * SIZEOF_U16 + self.data.len());

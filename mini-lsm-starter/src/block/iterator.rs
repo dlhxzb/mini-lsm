@@ -45,9 +45,9 @@ impl BlockIterator {
         &self.value
     }
 
-    /// Returns true if the iterator is valid.
+    /// Returns true if the iterator is valid (not end).
     pub fn is_valid(&self) -> bool {
-        !self.key.is_empty()
+        !self.key.is_empty() // At end of iter, key is `clear`
     }
 
     /// Seeks to the first key in the block.
@@ -65,7 +65,7 @@ impl BlockIterator {
     pub fn seek_to_key(&mut self, key: &[u8]) {
         use std::cmp::Ordering::*;
         let mut left = 0;
-        let mut right = self.block.offsets.len() - 1;
+        let mut right = self.block.offsets.len();
         while left < right {
             let mid = (left + right) / 2;
             self.seek_to(mid);
