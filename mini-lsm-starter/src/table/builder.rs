@@ -55,8 +55,8 @@ impl SsTableBuilder {
     /// chapter 4 block cache.
     pub fn build(
         mut self,
-        id: usize,
-        block_cache: Option<Arc<BlockCache>>,
+        _id: usize,
+        _block_cache: Option<Arc<BlockCache>>,
         path: impl AsRef<Path>,
     ) -> Result<SsTable> {
         if !self.block_builder.is_empty() {

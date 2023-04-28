@@ -1,6 +1,3 @@
-#![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
-#![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
-
 use anyhow::Result;
 
 use super::StorageIterator;
@@ -10,29 +7,60 @@ use super::StorageIterator;
 pub struct TwoMergeIterator<A: StorageIterator, B: StorageIterator> {
     a: A,
     b: B,
-    // Add fields as need
+    choose_a: bool,
 }
 
 impl<A: StorageIterator, B: StorageIterator> TwoMergeIterator<A, B> {
+    fn choose_a(&mut self) {
+        self.choose_a = !self.b.is_valid() || (self.a.is_valid() && self.a.key() <= self.b.key());
+    }
+
     pub fn create(a: A, b: B) -> Result<Self> {
-        unimplemented!()
+        let mut res = Self {
+            a,
+            b,
+            choose_a: false,
+        };
+        res.choose_a();
+        Ok(res)
     }
 }
 
 impl<A: StorageIterator, B: StorageIterator> StorageIterator for TwoMergeIterator<A, B> {
     fn key(&self) -> &[u8] {
-        unimplemented!()
+        if self.choose_a {
+            self.a.key()
+        } else {
+            self.b.key()
+        }
     }
 
     fn value(&self) -> &[u8] {
-        unimplemented!()
+        if self.choose_a {
+            self.a.value()
+        } else {
+            self.b.value()
+        }
     }
 
     fn is_valid(&self) -> bool {
-        unimplemented!()
+        if self.choose_a {
+            self.a.is_valid()
+        } else {
+            self.b.is_valid()
+        }
     }
 
     fn next(&mut self) -> Result<()> {
-        unimplemented!()
+        if self.choose_a {
+            if self.b.is_valid() && self.a.key() == self.b.key() {
+                self.b.next()?;
+            }
+            self.a.next()?;
+        } else {
+            self.b.next()?;
+        }
+        self.choose_a();
+        Ok(())
     }
 }

@@ -415,7 +415,6 @@ dependencies = [
  "crossbeam-epoch",
  "crossbeam-skiplist",
  "moka",
- "ouroboros",
  "parking_lot",
  "tempfile",
 ]

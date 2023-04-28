@@ -1,7 +1,6 @@
 mod builder;
 mod iterator;
 
-use std::fs::File;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -68,7 +67,7 @@ impl FileObject {
         Ok(FileObject(data.into()))
     }
 
-    pub fn open(path: &Path) -> Result<Self> {
+    pub fn open(_path: &Path) -> Result<Self> {
         unimplemented!()
     }
 }
@@ -89,7 +88,11 @@ impl SsTable {
     }
 
     /// Open SSTable from a file.
-    pub fn open(id: usize, block_cache: Option<Arc<BlockCache>>, file: FileObject) -> Result<Self> {
+    pub fn open(
+        _id: usize,
+        _block_cache: Option<Arc<BlockCache>>,
+        file: FileObject,
+    ) -> Result<Self> {
         let block_meta_offset = (&file.0[file.size() - SIZEOF_U32..]).get_u32() as usize;
         let block_metas =
             BlockMeta::decode_block_meta(&file.0[block_meta_offset..file.size() - SIZEOF_U32]);
@@ -118,7 +121,7 @@ impl SsTable {
     }
 
     /// Read a block from disk, with block cache. (Day 4)
-    pub fn read_block_cached(&self, block_idx: usize) -> Result<Arc<Block>> {
+    pub fn read_block_cached(&self, _block_idx: usize) -> Result<Arc<Block>> {
         unimplemented!()
     }
 
