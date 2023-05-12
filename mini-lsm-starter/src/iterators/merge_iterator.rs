@@ -5,19 +5,17 @@ use anyhow::Result;
 
 use super::StorageIterator;
 
-// Use trait object instead of generics, so don't need `TwoMergeIterator` anymore,
-// TODO: performance of trait object
-struct HeapWrapper(pub usize, pub Box<dyn StorageIterator>);
+struct HeapWrapper<I: StorageIterator>(pub usize, pub Box<I>);
 
-impl PartialEq for HeapWrapper {
+impl<I: StorageIterator> PartialEq for HeapWrapper<I> {
     fn eq(&self, other: &Self) -> bool {
         self.partial_cmp(other).unwrap() == Ordering::Equal
     }
 }
 
-impl Eq for HeapWrapper {}
+impl<I: StorageIterator> Eq for HeapWrapper<I> {}
 
-impl PartialOrd for HeapWrapper {
+impl<I: StorageIterator> PartialOrd for HeapWrapper<I> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         match self.1.key().cmp(other.1.key()) {
             Ordering::Greater => Ordering::Greater,
@@ -29,7 +27,7 @@ impl PartialOrd for HeapWrapper {
     }
 }
 
-impl Ord for HeapWrapper {
+impl<I: StorageIterator> Ord for HeapWrapper<I> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.partial_cmp(other).unwrap()
     }
@@ -37,13 +35,13 @@ impl Ord for HeapWrapper {
 
 /// Merge multiple iterators of the same type. If the same key occurs multiple times in some
 /// iterators, perfer the one with smaller index.
-pub struct MergeIterator {
-    iters: BinaryHeap<HeapWrapper>,
+pub struct MergeIterator<I: StorageIterator> {
+    iters: BinaryHeap<HeapWrapper<I>>,
 }
 
-impl MergeIterator {
-    pub fn create(iters: Vec<Box<dyn StorageIterator>>) -> Self {
-        let iters: BinaryHeap<HeapWrapper> = iters
+impl<I: StorageIterator> MergeIterator<I> {
+    pub fn create(iters: Vec<Box<I>>) -> Self {
+        let iters: BinaryHeap<HeapWrapper<I>> = iters
             .into_iter()
             .filter(|iter| iter.is_valid())
             .enumerate()
@@ -53,7 +51,7 @@ impl MergeIterator {
     }
 }
 
-impl StorageIterator for MergeIterator {
+impl<I: StorageIterator> StorageIterator for MergeIterator<I> {
     fn key(&self) -> &[u8] {
         self.iters
             .peek()
@@ -93,17 +91,17 @@ impl StorageIterator for MergeIterator {
     }
 }
 
-// struct HeapWrapper<I: StorageIterator>(pub usize, pub Box<I>);
-
-// impl<I: StorageIterator> PartialEq for HeapWrapper<I> {
+// Use trait object instead of generics, so don't need `TwoMergeIterator` anymore,
+// TODO: performance of trait object// struct HeapWrapper(pub usize, pub Box<dyn StorageIterator>);
+// impl PartialEq for HeapWrapper {
 //     fn eq(&self, other: &Self) -> bool {
 //         self.partial_cmp(other).unwrap() == Ordering::Equal
 //     }
 // }
 
-// impl<I: StorageIterator> Eq for HeapWrapper<I> {}
+// impl Eq for HeapWrapper {}
 
-// impl<I: StorageIterator> PartialOrd for HeapWrapper<I> {
+// impl PartialOrd for HeapWrapper {
 //     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
 //         match self.1.key().cmp(other.1.key()) {
 //             Ordering::Greater => Ordering::Greater,
@@ -115,7 +113,7 @@ impl StorageIterator for MergeIterator {
 //     }
 // }
 
-// impl<I: StorageIterator> Ord for HeapWrapper<I> {
+// impl Ord for HeapWrapper {
 //     fn cmp(&self, other: &Self) -> Ordering {
 //         self.partial_cmp(other).unwrap()
 //     }
@@ -123,13 +121,13 @@ impl StorageIterator for MergeIterator {
 
 // /// Merge multiple iterators of the same type. If the same key occurs multiple times in some
 // /// iterators, perfer the one with smaller index.
-// pub struct MergeIterator<I: StorageIterator> {
-//     iters: BinaryHeap<HeapWrapper<I>>,
+// pub struct MergeIterator {
+//     iters: BinaryHeap<HeapWrapper>,
 // }
 
-// impl<I: StorageIterator> MergeIterator<I> {
-//     pub fn create(iters: Vec<Box<I>>) -> Self {
-//         let iters: BinaryHeap<HeapWrapper<I>> = iters
+// impl MergeIterator {
+//     pub fn create(iters: Vec<Box<dyn StorageIterator>>) -> Self {
+//         let iters: BinaryHeap<HeapWrapper> = iters
 //             .into_iter()
 //             .filter(|iter| iter.is_valid())
 //             .enumerate()
@@ -139,7 +137,7 @@ impl StorageIterator for MergeIterator {
 //     }
 // }
 
-// impl<I: StorageIterator> StorageIterator for MergeIterator<I> {
+// impl StorageIterator for MergeIterator {
 //     fn key(&self) -> &[u8] {
 //         self.iters
 //             .peek()

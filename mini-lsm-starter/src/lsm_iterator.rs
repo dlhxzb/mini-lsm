@@ -3,16 +3,23 @@ use std::ops::Bound;
 use anyhow::Result;
 use bytes::Bytes;
 
-use crate::iterators::{merge_iterator::MergeIterator, StorageIterator};
+use crate::iterators::{
+    merge_iterator::MergeIterator, two_merge_iterator::TwoMergeIterator, StorageIterator,
+};
+use crate::mem_table::MemTableIterator;
+use crate::table::SsTableIterator;
+
+type LsmIteratorInner =
+    TwoMergeIterator<MergeIterator<MemTableIterator>, MergeIterator<SsTableIterator>>;
 
 pub struct LsmIterator {
-    iter: MergeIterator,
+    iter: LsmIteratorInner,
     end_bound: Bound<Bytes>,
     is_valid: bool,
 }
 
 impl LsmIterator {
-    pub fn new(iter: MergeIterator, end_bound: Bound<Bytes>) -> Result<Self> {
+    pub fn new(iter: LsmIteratorInner, end_bound: Bound<Bytes>) -> Result<Self> {
         let mut res = LsmIterator {
             is_valid: iter.is_valid(),
             iter,

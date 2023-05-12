@@ -8,6 +8,7 @@ use parking_lot::{Mutex, RwLock};
 
 use crate::block::Block;
 use crate::iterators::merge_iterator::MergeIterator;
+use crate::iterators::two_merge_iterator::TwoMergeIterator;
 use crate::iterators::StorageIterator;
 use crate::lsm_iterator::{FusedIterator, LsmIterator};
 use crate::mem_table::MemTable;
@@ -129,6 +130,7 @@ impl LsmStorage {
         // Flush memtable to disk as an SST file without holding any lock
         let mut builder = SsTableBuilder::new(4096);
         memtable.flush(&mut builder)?;
+        // Write to disk
         let sst = builder.build(
             sst_id,
             Some(self.block_cache.clone()),
@@ -151,14 +153,14 @@ impl LsmStorage {
         upper: Bound<&[u8]>,
     ) -> Result<FusedIterator<LsmIterator>> {
         let inner = self.inner.read().clone();
-        let mut mt_iter: Vec<_> = std::iter::once(&inner.memtable)
+        let mt_iter: Vec<_> = std::iter::once(&inner.memtable)
             .chain(inner.imm_memtables.iter().rev())
             .map(|mt| {
                 let iter = mt.scan(lower, upper);
-                Box::new(iter) as Box<dyn StorageIterator>
+                Box::new(iter)
             })
             .collect();
-        let mut sst_iter = inner
+        let sst_iter = inner
             .l0_sstables
             .iter()
             .rev()
@@ -176,12 +178,14 @@ impl LsmStorage {
                     }
                     Bound::Unbounded => SsTableIterator::create_and_seek_to_first(sst.clone())?,
                 };
-                Ok(Box::new(iter) as Box<dyn StorageIterator>)
+                Ok(Box::new(iter))
             })
-            .collect::<Result<Vec<Box<dyn StorageIterator>>>>()?;
-        mt_iter.append(&mut sst_iter);
+            .collect::<Result<Vec<_>>>()?;
         Ok(FusedIterator::new(LsmIterator::new(
-            MergeIterator::create(mt_iter),
+            TwoMergeIterator::create(
+                MergeIterator::create(mt_iter),
+                MergeIterator::create(sst_iter),
+            )?,
             upper.map(Bytes::copy_from_slice),
         )?))
     }

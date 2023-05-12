@@ -132,6 +132,6 @@ fn test_merge_2() {
 
 #[test]
 fn test_merge_empty() {
-    let iter = MergeIterator::create(vec![]);
+    let iter = MergeIterator::<MockIterator>::create(vec![]);
     check_iter_result(iter, vec![]);
 }
