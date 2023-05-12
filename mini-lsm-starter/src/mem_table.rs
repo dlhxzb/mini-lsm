@@ -36,17 +36,12 @@ impl MemTable {
 
     /// Get an iterator over a range of keys.
     pub fn scan(&self, lower: Bound<&[u8]>, upper: Bound<&[u8]>) -> MemTableIterator {
-        let mut iter = MemTableIterator {
-            iter: self.map.range((
-                lower.map(Bytes::copy_from_slice),
-                upper.map(Bytes::copy_from_slice),
-            )),
-            item: Default::default(),
-            // map: self.map.clone(),
-        };
+        let mut iter = MemTableIterator::new(self.map.clone(), lower, upper);
+        // iter.init_iter(lower, upper);
         iter.next().unwrap();
         iter
     }
+
     /// Flush the mem-table to SSTable.
     pub fn flush(&self, builder: &mut SsTableBuilder) -> Result<()> {
         while let Some(entry) = self.map.pop_front() {
@@ -60,13 +55,30 @@ type SkipMapRangeIter<'a> =
     crossbeam_skiplist::map::Range<'a, Bytes, (Bound<Bytes>, Bound<Bytes>), Bytes, Bytes>;
 
 /// An iterator over a range of `SkipMap`.
-pub struct MemTableIterator<'a> {
-    iter: SkipMapRangeIter<'a>,
+pub struct MemTableIterator {
+    iter: SkipMapRangeIter<'static>,
     item: (Bytes, Bytes),
-    // map: Arc<SkipMap<Bytes, Bytes>>,
+    _map: Arc<SkipMap<Bytes, Bytes>>,
 }
 
-impl StorageIterator for MemTableIterator<'_> {
+impl MemTableIterator {
+    fn new(map: Arc<SkipMap<Bytes, Bytes>>, lower: Bound<&[u8]>, upper: Bound<&[u8]>) -> Self {
+        let p = Arc::as_ptr(&map);
+        // SAFETY: _map: Arc<SkipMap> will keep SkipMap lives as long as iter
+        unsafe {
+            MemTableIterator {
+                iter: (*p).range((
+                    lower.map(Bytes::copy_from_slice),
+                    upper.map(Bytes::copy_from_slice),
+                )),
+                item: Default::default(),
+                _map: map,
+            }
+        }
+    }
+}
+
+impl StorageIterator for MemTableIterator {
     fn value(&self) -> &[u8] {
         &self.item.1
     }

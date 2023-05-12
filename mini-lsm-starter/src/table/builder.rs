@@ -55,8 +55,8 @@ impl SsTableBuilder {
     /// chapter 4 block cache.
     pub fn build(
         mut self,
-        _id: usize,
-        _block_cache: Option<Arc<BlockCache>>,
+        id: usize,
+        block_cache: Option<Arc<BlockCache>>,
         path: impl AsRef<Path>,
     ) -> Result<SsTable> {
         if !self.block_builder.is_empty() {
@@ -72,6 +72,8 @@ impl SsTableBuilder {
             file: FileObject::create(path.as_ref(), buf)?,
             block_metas: self.meta,
             block_meta_offset: meta_offset,
+            id,
+            block_cache,
         })
     }
 

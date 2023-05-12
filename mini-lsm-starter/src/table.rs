@@ -79,6 +79,8 @@ pub struct SsTable {
     file: FileObject,
     block_metas: Vec<BlockMeta>,
     block_meta_offset: usize,
+    id: usize,
+    block_cache: Option<Arc<BlockCache>>,
 }
 
 impl SsTable {
@@ -88,11 +90,7 @@ impl SsTable {
     }
 
     /// Open SSTable from a file.
-    pub fn open(
-        _id: usize,
-        _block_cache: Option<Arc<BlockCache>>,
-        file: FileObject,
-    ) -> Result<Self> {
+    pub fn open(id: usize, block_cache: Option<Arc<BlockCache>>, file: FileObject) -> Result<Self> {
         let block_meta_offset = (&file.0[file.size() - SIZEOF_U32..]).get_u32() as usize;
         let block_metas =
             BlockMeta::decode_block_meta(&file.0[block_meta_offset..file.size() - SIZEOF_U32]);
@@ -100,6 +98,8 @@ impl SsTable {
             file,
             block_metas,
             block_meta_offset,
+            id,
+            block_cache,
         })
     }
 
@@ -121,8 +121,13 @@ impl SsTable {
     }
 
     /// Read a block from disk, with block cache. (Day 4)
-    pub fn read_block_cached(&self, _block_idx: usize) -> Result<Arc<Block>> {
-        unimplemented!()
+    pub fn read_block_cached(&self, block_idx: usize) -> Result<Arc<Block>> {
+        if let Some(ref cache) = self.block_cache {
+            if let Some(block) = cache.get(&(self.id, block_idx)) {
+                return Ok(block);
+            }
+        }
+        self.read_block(block_idx)
     }
 
     /// Find the block that may contain `key`.
